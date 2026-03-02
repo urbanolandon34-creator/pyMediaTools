@@ -1,4 +1,6 @@
-# pyMediaTools
+# pyMediaTools Electron
+
+专业媒体转换、配音、智能字幕编辑的桌面应用（Electron 版）。
 
 ## 如何发布新版本
 
@@ -7,7 +9,9 @@
 ### 发布步骤
 
 #### 1. 确保代码已提交并推送
+
 在发布之前，确保你的所有代码改动已经提交并推送到 GitHub：
+
 ```bash
 # 查看当前状态
 git status
@@ -23,23 +27,29 @@ git push origin main
 ```
 
 #### 2. 创建版本 Tag
+
 Git Tag 是一个版本标记，用于标识发布的版本号。版本号格式为 `v主版本.次版本.修订版本`，例如 `v1.0.0`、`v1.1.0`、`v2.0.0`。
+
 ```bash
 # 创建一个新的版本 tag（将 v1.0.1 替换为你想要的版本号）
 git tag -a v1.0.1 -m "Release version 1.0.1"
 ```
 
 #### 3. 推送 Tag 触发自动构建
+
 ```bash
 # 推送 tag 到 GitHub（这会自动触发 CI 构建）
 git push origin v1.0.1
 ```
+
 推送后，GitHub Actions 会自动执行以下操作：
+
 1. 构建项目
 2. 生成安全签名（Attestation）
 3. 创建 Release 并上传构建产物
 
 #### 4. 查看构建结果
+
 - 构建进度：访问项目的 **Actions** 页面查看
 - 发布结果：访问项目的 **Releases** 页面查看已发布的文件
 
@@ -56,6 +66,7 @@ git push origin v1.0.1
 1. 访问项目的 **Actions** 页面查看错误日志
 2. 修复代码问题
 3. 删除失败的 tag 并重新创建：
+
 ```bash
 # 删除本地 tag
 git tag -d v1.0.1
