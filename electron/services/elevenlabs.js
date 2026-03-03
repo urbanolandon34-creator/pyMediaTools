@@ -158,8 +158,7 @@ function setKeyEnabled(apiKey, enabled, reason = '', source = 'auto') {
         data.keys_with_status = kws;
         saveSettings(data);
         const action = enabled ? '启用' : '停用';
-        const maskKey = k => k ? '***' + k.slice(-4) : '';
-        const keyPrefix = maskKey(apiKey);
+        const keyPrefix = apiKey ? ('***' + String(apiKey).slice(-4)) : '(none)';
         console.log(`[ElevenLabs] 已${source === 'manual' ? '手动' : '自动'}${action} Key ${keyPrefix}${reason ? '，原因: ' + reason : ''}`);
     }
 }
@@ -324,8 +323,7 @@ async function requestTTSWithRotation(keys, voiceId, text, modelId, stability, o
     let lastErr = null;
     for (let i = 0; i < keysToTry.length; i++) {
         const apiKey = keysToTry[i];
-        const maskKey = k => k ? '***' + k.slice(-4) : '';
-        const keyLabel = `Key${i + 1}(${maskKey(apiKey)})`;
+        const keyLabel = `Key${i + 1}(${apiKey ? '***' + String(apiKey).slice(-4) : ''})`;
         try {
             const audio = await requestTTS(apiKey, voiceId, text, modelId, stability, outputFormat);
             return { audio, usedKey: apiKey };

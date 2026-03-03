@@ -60,9 +60,9 @@ function buildSubtitleBurnCommand(params) {
         }
     }
 
-    // 字幕 filter (需要转义特殊字符)
-    const escapedAssPath = assPath
-        .replace(/\\/g, '/')
+    // Subtitle filter path escaping: normalize backslashes to forward slashes,
+    // then escape colons and single-quotes for FFmpeg's libass syntax.
+    const escapedAssPath = assPath.split('\\').join('/')
         .replace(/:/g, '\\:')
         .replace(/'/g, "'\\''");
     const subtitleFilter = `subtitles='${escapedAssPath}'`;

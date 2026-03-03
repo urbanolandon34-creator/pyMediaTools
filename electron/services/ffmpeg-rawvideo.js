@@ -13,11 +13,12 @@ const { spawn, execSync, execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 
 const sessions = new Map();
 
 function generateId() {
-    return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    return Date.now().toString(36) + '_' + crypto.randomBytes(4).toString('hex');
 }
 
 function findFFmpeg() {

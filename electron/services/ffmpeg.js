@@ -479,8 +479,10 @@ function isImageMedia(filePath) {
 }
 
 function escapeAssPathForFilter(assPath) {
-    return String(assPath || '')
-        .replace(/\\/g, '/')
+    // Normalize all backslashes to forward slashes, then escape
+    // colons and single-quotes for FFmpeg's libass subtitle filter.
+    const normalized = String(assPath || '').split('\\').join('/');
+    return normalized
         .replace(/:/g, '\\:')
         .replace(/'/g, "'\\''");
 }

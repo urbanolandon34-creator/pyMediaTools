@@ -8684,7 +8684,10 @@ function _batchTxtMakeFileName(text, num, padding) {
     const numStr = padding > 0 ? String(num).padStart(padding, '0') : String(num);
 
     const firstLine = text.split('\n')[0];
-    const cleanText = firstLine.replace(/<[^>]+>/g, '').replace(/\[[^\]]+\]/g, '').replace(/[<>\[\]()]/g, '');
+    // Recursively strip HTML tags and brackets to prevent XSS
+    let cleanText = firstLine;
+    while (/<[^>]*>/g.test(cleanText)) { cleanText = cleanText.replace(/<[^>]*>/g, ''); }
+    cleanText = cleanText.replace(/\[[^\]]+\]/g, '').replace(/[<>\[\]()]/g, '');
     let textPrefix = cleanText.split(/\s+/).slice(0, 15).join('_').slice(0, 60);
     textPrefix = textPrefix.replace(/[^a-zA-Z0-9\u4e00-\u9fff _-]/g, '').replace(/\s+/g, '_').trim();
     if (!textPrefix) textPrefix = 'text';
@@ -8841,7 +8844,7 @@ function _renderBatchTxtTable() {
                         <span style="font-size:10px;font-family:monospace;color:var(--accent-color);
                             background:rgba(233,69,96,0.1);padding:2px 6px;border-radius:4px;
                             overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;"
-                            title="${escHtml(fileName)}">📄 ${escHtml(fileName)}</span>
+                            title="${escHtml(fileName).replace(/"/g, '&quot;').replace(/'/g, '&#39;')}">📄 ${escHtml(fileName)}</span>
                         <span style="font-size:10px;color:var(--text-muted);">${lineCount}行</span>
                     </div>
                 </div>

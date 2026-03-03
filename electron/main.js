@@ -1,7 +1,8 @@
-const { app, BrowserWindow, ipcMain, dialog, powerSaveBlocker } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, powerSaveBlocker, protocol } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const ffmpegService = require('./services/ffmpeg');
+const { initAutoUpdater } = require('./updater');
 
 // Node.js API 路由器 —— 替代 Python Flask 后端
 const { registerAPIHandlers } = require('./apiRouter');
@@ -113,7 +114,7 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
             sandbox: false,
-            webSecurity: false,  // 允许从本地路径加载视频预览
+            webSecurity: true,
             preload: path.join(__dirname, 'preload.js')
         },
         titleBarStyle: 'hiddenInset',
@@ -136,6 +137,19 @@ function createWindow() {
 app.whenReady().then(async () => {
     appIsReady = true;
     log('=== App Ready (Node.js Backend) ===');
+
+    // Register custom protocol for serving local media files securely
+    // This replaces the previous webSecurity:false approach
+    protocol.handle('local-media', (request) => {
+        const url = request.url.replace('local-media://', '');
+        const filePath = decodeURIComponent(url);
+        // Security: only allow reading existing files, no directory traversal
+        const resolved = path.resolve(filePath);
+        if (!fs.existsSync(resolved)) {
+            return new Response('Not Found', { status: 404 });
+        }
+        return new Response(fs.createReadStream(resolved));
+    });
 
     // 设置 FFmpeg 环境
     setupFFmpegPath();
@@ -335,6 +349,13 @@ app.whenReady().then(async () => {
 
     // 直接创建窗口（不需要等待后端启动了！）
     createWindow();
+
+    // 自动更新：仅在打包版启用（开发模式跳过）
+    if (app.isPackaged && mainWindow) {
+        initAutoUpdater(mainWindow, log);
+    } else {
+        log('[Updater] 开发模式，跳过自动更新初始化');
+    }
 });
 
 app.on('window-all-closed', () => {

@@ -52,12 +52,34 @@ CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 # 服务启动时间（用于 health 接口返回 uptime）
 _server_start_time = time.time()
 
+def _validate_file_path(file_path):
+    """Validate and sanitize file path input to prevent path injection."""
+    if not file_path or not isinstance(file_path, str):
+        return None
+    # Resolve to absolute path to prevent traversal
+    resolved = os.path.realpath(file_path)
+    # Block obvious path traversal attempts
+    if '..' in os.path.normpath(file_path).split(os.sep):
+        return None
+    return resolved
+
+def _validate_numeric_param(value, min_val, max_val, default):
+    """Validate numeric parameter within safe range."""
+    try:
+        num = float(value)
+        if num < min_val or num > max_val:
+            return default
+        return num
+    except (TypeError, ValueError):
+        return default
+
+
 # 全局错误处理器 —— 防止未捕获异常导致线程挂起
 @app.errorhandler(Exception)
 def handle_global_exception(e):
     import traceback
     traceback.print_exc()
-    return jsonify({"error": f"服务器内部错误: {str(e)}"}), 500
+    return jsonify({"error": "服务器内部错误"}), 500
 
 @app.errorhandler(404)
 def handle_404(e):
@@ -65,7 +87,7 @@ def handle_404(e):
 
 @app.errorhandler(500)
 def handle_500(e):
-    return jsonify({"error": f"服务器错误: {str(e)}"}), 500
+    return jsonify({"error": "服务器错误"}), 500
 
 # 全局处理 OPTIONS 预检请求
 @app.before_request
@@ -2993,8 +3015,13 @@ def scene_detect():
     threshold = float(data.get('threshold', 0.3))  # 灵敏度, 0.0~1.0, 越小越灵敏
     min_interval = float(data.get('min_interval', 0.5))  # 场景最小间隔（秒），过滤过于密集的检测结果
 
+    file_path = _validate_file_path(file_path)
     if not file_path or not os.path.exists(file_path):
         return jsonify({"error": "文件不存在"}), 400
+
+    # Validate numeric parameters to prevent injection
+    threshold = _validate_numeric_param(threshold, 0.0, 1.0, 0.3)
+    min_interval = _validate_numeric_param(min_interval, 0.0, 60.0, 0.5)
 
     try:
         # 获取视频时长
@@ -3114,7 +3141,7 @@ def scene_detect():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": f"场景检测失败: {str(e)}"}), 500
+        return jsonify({"error": "场景检测失败，请检查输入文件"}), 500
 
 
 def _format_scene_time(seconds):
@@ -3197,7 +3224,7 @@ def scene_split():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": f"场景拆分失败: {str(e)}"}), 500
+        return jsonify({"error": "场景拆分失败，请检查输入文件"}), 500
 
 
 @app.route('/api/media/scene-detect-frames', methods=['POST', 'OPTIONS'])
@@ -3215,8 +3242,14 @@ def scene_detect_frames():
     image_format = data.get('format', 'jpg')  # jpg 或 png
     quality = int(data.get('quality', 2))      # FFmpeg -q:v
 
+    file_path = _validate_file_path(file_path)
     if not file_path or not os.path.exists(file_path):
         return jsonify({"error": "文件不存在"}), 400
+
+    # Validate numeric parameters to prevent injection
+    threshold = _validate_numeric_param(threshold, 0.0, 1.0, 0.3)
+    min_interval = _validate_numeric_param(min_interval, 0.0, 60.0, 0.5)
+    quality = int(_validate_numeric_param(quality, 1, 31, 2))
 
     try:
         base_name = os.path.splitext(os.path.basename(file_path))[0]
@@ -3282,9 +3315,10 @@ def scene_detect_frames():
 
         print(f"[场景帧] 共需截取 {len(extract_points)} 帧 ({num_scenes} 场景 × {frames_per_scene} 帧/场景)")
 
-        # --- 4) 输出目录 ---
+        # --- 4) 输出目录 (validated) ---
         if not output_dir:
             output_dir = os.path.join(os.path.dirname(file_path), f"{base_name}_scene_frames")
+        output_dir = os.path.realpath(output_dir)
         os.makedirs(output_dir, exist_ok=True)
 
         # --- 5) 逐帧导出 ---
@@ -3378,7 +3412,7 @@ def scene_detect_frames():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": f"场景帧导出失败: {str(e)}"}), 500
+        return jsonify({"error": "场景帧导出失败，请检查输入文件"}), 500
 
 
 @app.route('/api/audio/smart-split-analyze', methods=['POST', 'OPTIONS'])
